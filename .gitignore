@@ -1,9 +1,26 @@
-.vscode
+# IDEs
+.vscode/
+
+# Python virtual environments
 venv/
 .env/
-venv 
+ennv/
+# Python cache
+__pycache__/
+
+# Jupyter Notebooks
+*.ipynb
+#dummy files
+dummy/
+# Data files
 *.csv
+*.json.gz
+*.zip
 data/*
-ipynb
-__pycache__
+
+# Logs
 *.log
+
+# jar files
+jars/
+*.jar
