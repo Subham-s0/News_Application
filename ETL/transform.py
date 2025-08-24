@@ -76,7 +76,7 @@ def get_dataframe(file_path: str, spark):
         )
         return raw_df.select(
             raw_df["_c0"].cast(T.StringType()).alias("GKGRECORDID"),
-            raw_df["_c1"].cast(T.IntegerType()).alias("DATE"),
+            raw_df["_c1"].cast(T.StringType()).alias("DATE"),
             raw_df["_c3"].cast(T.StringType()).alias("SourceCommonName"),
             raw_df["_c4"].cast(T.StringType()).alias("DocumentIdentifier"),
             raw_df["_c7"].cast(T.StringType()).alias("Themes"),

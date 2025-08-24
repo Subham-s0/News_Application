@@ -6,7 +6,7 @@ from datetime import datetime
 def setup_logging(base_name):
     dt = datetime.now()
     timestamp = dt.strftime("%Y%m%d_%H%M%S")
-    log_file_name = f"{timestamp}{base_name}"  #
+    log_file_name = f"{timestamp}{base_name}"  
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
     

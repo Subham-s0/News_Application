@@ -16,7 +16,7 @@ def create_spark_session(logger, spark_config):
             .config("spark.executor.memory", spark_config["executor_memory"])
             .config("spark.executor.cores", spark_config["executor_cores"]) 
             .config("spark.executor.instances", spark_config["executor_instances"])
-            .config("spark.jars", "D:\GDELT\GDELT\GDELT\jars\postgresql-42.7.7.jar")  # Add PostgreSQL JDBC driver
+            .config("spark.jars", r"D:\GDELT\GDELT\GDELT\jars\postgresql-42.7.7.jar")  # Add PostgreSQL JDBC driver
             .config("spark.files.overwrite", "true")
             .getOrCreate()
     )
@@ -75,7 +75,7 @@ def create_postgres_tables(logger, pg_un, pg_pw, pg_host):
             """
             CREATE TABLE IF NOT EXISTS gkg (
                 GKGRECORDID VARCHAR(50) PRIMARY KEY,
-                DATE INTEGER,
+                DATE TEXT,
                 SourceCommonName TEXT,
                 DocumentIdentifier TEXT,
                 Themes TEXT,
