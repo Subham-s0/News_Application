@@ -184,7 +184,7 @@ def truncate_all_tables_if_exists(logger, pg_un, pg_pw, pg_host):
 
 def load_to_postgres(logger, spark, input_dir, pg_un, pg_pw, pg_host):
     """Load CSV files to PostgreSQL."""
-    jdbc_url = f"jdbc:postgresql://{pg_host}:5432/postgres"
+    jdbc_url = f"jdbc:postgresql://{pg_host}:5432/News"
     connection_properties = {
         "user": pg_un,  
         "password": pg_pw, 
@@ -241,13 +241,12 @@ if __name__ == "__main__":
     spark_config["executor_cores"] = sys.argv[8]
     spark_config["executor_instances"] = sys.argv[9]
     
-    truncate_all_tables_if_exists(logger, pg_un, pg_pw, pg_host)
-
     logger.info("GDELT Load stage started")
     start = time.time()
 
     spark = create_spark_session(logger, spark_config)
     spark.sparkContext.setLogLevel("WARN")  # Reduce Spark logging
+    truncate_all_tables_if_exists(logger, pg_un, pg_pw, pg_host)
     create_postgres_tables(logger, pg_un, pg_pw, pg_host)
     load_to_postgres(logger, spark, input_dir, pg_un, pg_pw, pg_host)
 
