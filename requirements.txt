@@ -1,0 +1,7 @@
+Flask
+flask-cors
+psycopg2-binary
+scikit-learn
+pandas
+numpy
+pip install -r requirements.txt

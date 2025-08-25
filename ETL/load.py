@@ -4,7 +4,7 @@ import os
 import psycopg2
 from pyspark.sql import SparkSession
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Utility.Utility import setup_logging, format_time
+from Util.Utility import setup_logging, format_time
 
 def create_spark_session(logger, spark_config):
     """Initialize Spark session with PostgreSQL JDBC driver."""
@@ -58,14 +58,14 @@ def create_postgres_tables(logger, pg_un, pg_pw, pg_host):
                 Actor2Geo_Long DOUBLE PRECISION,
                 ActionGeo_Lat DOUBLE PRECISION,
                 ActionGeo_Long DOUBLE PRECISION,
-                DateAdded INTEGER,
+                DateAdded BIGINT,
                 SOURCEURL TEXT
             );
             """,
             """
             CREATE TABLE IF NOT EXISTS mentions (
                 GlobalEventID VARCHAR(50),
-                MentionTimeDate TEXT,
+                MentionTimeDate BIGINT,
                 MentionsSource TEXT,
                 MentionIdentifier TEXT,
                 Confidence DOUBLE PRECISION,
