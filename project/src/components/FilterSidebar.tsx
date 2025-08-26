@@ -45,7 +45,6 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFiltersChange,
     });
   };
 
-  const dateRanges = ['All Time', 'Today', 'This Week', 'This Month', 'This Year'];
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 sticky top-6 space-y-6">
@@ -95,23 +94,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFiltersChange,
           </select>
         </div>
 
-        {/* Date Range Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Date Range
-          </label>
-          <select
-            value={filters.dateRange}
-            onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          >
-            {dateRanges.map((range) => (
-              <option key={range} value={range}>
-                {range}
-              </option>
-            ))}
-          </select>
-        </div>
+        
       </div>
 
       {/* Current Results */}

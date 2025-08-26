@@ -220,6 +220,104 @@ def load_to_postgres(logger, spark, input_dir, pg_un, pg_pw, pg_host):
             
         except Exception as e:
             logger.warning(f"Error loading {table_name}: {e}")
+            
+def load_search_table(logger, input_dir, pg_un, pg_pw, pg_host):
+    conn = None
+    cursor = None
+    try:
+        conn = psycopg2.connect(
+            dbname="News",
+            user=pg_un,
+            password=pg_pw,
+            host=pg_host,
+            port="5432"
+        )
+        cursor = conn.cursor()
+
+        # Step 0: Create table if not exists with proper schema
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gkg_search (
+            gkgrecordid TEXT,
+            date DATE,
+            sourcecommonname TEXT,
+            documentidentifier TEXT,
+            themes TEXT,
+            persons TEXT,
+            organizations TEXT,
+            allnames TEXT,
+            sharingimage TEXT,
+            relatedimages TEXT,
+            extras TEXT,
+            page_title TEXT,
+            search_vector tsvector
+        );
+        """)
+        logger.info("Ensured gkg_search table exists")
+
+        # Step 1: Clear existing data if any
+        cursor.execute("TRUNCATE TABLE gkg_search;")
+        logger.info("Truncated existing data in gkg_search")
+
+        # Step 2: Insert new data from gkg with page_title extraction
+        cursor.execute("""
+        INSERT INTO gkg_search (
+            gkgrecordid,
+            date,
+            sourcecommonname,
+            documentidentifier,
+            themes,
+            persons,
+            organizations,
+            allnames,
+            sharingimage,
+            relatedimages,
+            extras,
+            page_title
+        )
+        SELECT 
+            gkgrecordid,
+            date,
+            sourcecommonname,
+            documentidentifier,
+            themes,
+            persons,
+            organizations,
+            allnames,
+            sharingimage,
+            relatedimages,
+            extras,
+            COALESCE(SUBSTRING(extras FROM '<PAGE_TITLE>(.*?)</PAGE_TITLE>'), 'News Article') AS page_title
+        FROM gkg;
+        """)
+
+        # Step 3: Update full-text search vector column
+        cursor.execute("""
+        UPDATE gkg_search
+        SET search_vector = to_tsvector(
+            'english',
+            COALESCE(themes, '') || ' ' ||
+            COALESCE(persons, '') || ' ' ||
+            COALESCE(organizations, '') || ' ' ||
+            COALESCE(allnames, '') || ' ' ||
+            COALESCE(page_title, '')
+        );
+        """)
+
+        # Commit all changes
+        conn.commit()
+        logger.info("Loaded and indexed gkg_search table successfully")
+
+    except psycopg2.Error as e:
+        logger.error(f"PostgreSQL error in load_search_table: {e}")
+        if conn:
+            conn.rollback()
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 if __name__ == "__main__":
     logger = setup_logging("load_gdelt.log")
@@ -249,6 +347,7 @@ if __name__ == "__main__":
     truncate_all_tables_if_exists(logger, pg_un, pg_pw, pg_host)
     create_postgres_tables(logger, pg_un, pg_pw, pg_host)
     load_to_postgres(logger, spark, input_dir, pg_un, pg_pw, pg_host)
+    load_search_table(logger, input_dir, pg_un, pg_pw, pg_host)
 
     end = time.time()
     logger.info("GDELT Load stage completed")

@@ -434,34 +434,55 @@ def filter_news():
         return jsonify({'error': 'Theme parameter is required'}), 400
     
     query = """
-    SELECT DISTINCT
-        e.GlobalEventID as id,
-        e.SQLDATE as date,
-        e.Actor1Name as actor1_name,
-        e.Actor2Name as actor2_name,
-        e.NumMentions as num_mentions,
-        g.SourceCommonName as source,
-        g.SharingImage as image,
-        COALESCE(
-            (regexp_matches(g.Extras, '<pageTitle>(.*?)</pageTitle>'))[1], 
-            'News Article'
-        ) AS title,
-        gt.theme as theme,
-        m.Confidence as confidence
-    FROM events e
-    LEFT JOIN gkg g ON e.GlobalEventID = g.GKGRECORDID
-    LEFT JOIN gkg_themes gt ON g.GKGRECORDID = gt.GKGRECORDID
-    LEFT JOIN mentions m ON e.GlobalEventID = m.GlobalEventID
-    WHERE gt.theme ILIKE %s
-    ORDER BY e.SQLDATE DESC, e.NumMentions DESC
-    LIMIT %s
+   SELECT *
+        FROM (
+            SELECT DISTINCT ON (page_title)
+                e.globaleventid,
+                e.actor1name,
+                e.actor2name,
+                e.dateadded,
+                TO_DATE(e.sqldate::text, 'YYYYMMDD') AS event_date,
+                e.eventcode,
+                e.nummentions,
+                e.avgtone,
+                e.sourceurl AS url,
+                g.documentidentifier,
+                m.confidence,
+                g.sourcecommonname,
+                SPLIT_PART(g.themes, ';', 1) AS first_theme,
+                g.sharingimage,
+                SUBSTRING(g.extras FROM '<PAGE_TITLE>(.*?)</PAGE_TITLE>') AS page_title
+            FROM gkg g
+            INNER JOIN events e ON g.documentidentifier = e.sourceurl
+            INNER JOIN mentions m ON e.globaleventid = m.globaleventid
+            INNER JOIN gkg_themes gt ON g.gkgrecordid = gt.gkgrecordid
+            WHERE gt.theme ILIKE %s
+            ORDER BY page_title, e.nummentions DESC
+        ) t
+        ORDER BY t.nummentions DESC
+        LIMIT %s;
     """
     
     results = db_manager.execute_query(query, (f'%{theme}%', limit))
     if results is None:
         return jsonify({'error': 'Database query failed'}), 500
+    news_data = []
+    for row in results:
+        news_data.append({
+            'id': row['globaleventid'],
+            'actor1_name': row['actor1name'],
+            'actor2_name': row['actor2name'],
+            'event_date': row['event_date'],
+            'num_mentions': row['nummentions'],
+            'avg_tone': row['avgtone'],
+            'confidence': row['confidence'],
+            'source_url': row['url'],
+            'source': row['sourcecommonname'],
+            'theme': row['first_theme'],
+            'image': row['sharingimage'],
+            'title': row['page_title']
+        })
     
-    news_data = [dict(row) for row in results]
     return jsonify({'news': news_data, 'total': len(news_data)})
 
 @app.route('/api/search', methods=['GET'])
@@ -479,7 +500,6 @@ def search_news():
     except Exception as e:
         logger.error(f"Search API failed: {e}")
         return jsonify({'error': 'Search failed'}), 500
-
 @app.route('/api/news/<news_id>', methods=['GET'])
 def get_news_detail(news_id):
     """Get detailed information about a specific news item"""
@@ -516,11 +536,30 @@ def get_news_detail(news_id):
     """
     
     results = db_manager.execute_query(query, (news_id,))
+
     if not results:
+
+    
         return jsonify({'error': 'News item not found'}), 404
     
-    news_detail = dict(results[0])
-    return jsonify({'news': news_detail})
+    news_data = []
+    for row in results:
+        news_data.append({
+            'id': row['globaleventid'],
+            'actor1_name': row['actor1name'],
+            'actor2_name': row['actor2name'],
+            'event_date': row['event_date'],
+            'num_mentions': row['nummentions'],
+            'avg_tone': row['avgtone'],
+            'confidence': row['confidence'],
+            'source_url': row['url'],
+            'source': row['sourcecommonname'],
+            'theme': row['first_theme'],
+            'image': row['sharingimage'],
+            'title': row['page_title']
+        })
+    
+    return jsonify({'news': news_data})
 
 @app.route('/api/debug/tables', methods=['GET'])
 def debug_tables():

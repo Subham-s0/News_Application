@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, onSearch }
             </div>
             <input
               type="text"
-              placeholder="Search news articles using AI-powered search..."
+              placeholder="Search news articles ..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
