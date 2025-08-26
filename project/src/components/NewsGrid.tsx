@@ -16,7 +16,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({ articles, featuredArticle, loading 
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-           <div className="text-gray-800 font-medium flex items-center">
+           <div className="text-gray-900 font-medium flex items-center">
             Loading news articles
             <span className="ml-1 flex">
               <span className="animate-blink-1 ">.</span>

@@ -215,7 +215,7 @@ if __name__ == "__main__":
     start_time = sys.argv[3] if len(sys.argv) >= 4 and ":" in sys.argv[3] else "00:00"
 
     start_datetime, default_end = validate_and_round_datetime(start_date + " " + start_time)
-    start_datetime is not None or sys.exit(1)
+    start_datetime is not None or sys.exit("Error")
     if len(sys.argv) == 6:
         end_datetime = sys.argv[4] + " " + sys.argv[5]
     else:

@@ -71,9 +71,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, onSearch }
             <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
               SERVICES
             </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
-              PRODUCT
-            </a>
+
             <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
               ABOUT US
             </a>

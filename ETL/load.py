@@ -74,7 +74,7 @@ def create_postgres_tables(logger, pg_un, pg_pw, pg_host):
             """,
             """
             CREATE TABLE IF NOT EXISTS gkg (
-                GKGRECORDID VARCHAR(50) PRIMARY KEY,
+                GKGRECORDID VARCHAR(100),
                 DATE TEXT,
                 SourceCommonName TEXT,
                 DocumentIdentifier TEXT,
@@ -211,7 +211,7 @@ def load_to_postgres(logger, spark, input_dir, pg_un, pg_pw, pg_host):
                 .option("inferSchema", "true") \
                 .csv(csv_path)
             
-            # Write to PostgreSQL
+            # Write to PostgreSQ
             df.write \
                 .mode("append") \
                 .jdbc(url=jdbc_url, table=table_name, properties=connection_properties)
