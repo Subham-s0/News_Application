@@ -46,6 +46,34 @@ class ApiService {
 
     return typedResponse;
   }
+ async searchNews(query: string): Promise<ApiResponse<Article>> {
+    const encodedQuery = encodeURIComponent(query);
+    // Updated to match your API endpoint structure
+    const response = await this.fetchWithErrorHandling<ApiResponse<any>>(`${API_BASE_URL}/news/search?q=${encodedQuery}`);
+    
+    // Transform the response to match your Article interface
+    const typedResponse: ApiResponse<Article> = {
+      ...response,
+      news: response.news ? response.news.map((item: any): Article => ({
+        id: item.id,
+        title: item.title,
+        actor1_name: item.actor1_name,
+        actor2_name: item.actor2_name,
+        event_date: item.event_date,
+        num_mentions: item.num_mentions,
+        avg_tone: item.avg_tone,
+        confidence: item.confidence,
+        source: item.source,
+        source_url: item.source_url,
+        document_url: item.document_url,
+        image: item.image,
+        theme: item.theme,
+      })) : []
+    };
+    
+    return typedResponse;
+  }
+
 
   async getLatestNews(hours: number = 24, limit: number = 20): Promise<ApiResponse<Article>> {
     return this.fetchWithErrorHandling(`${API_BASE_URL}/news/latest?hours=${hours}&limit=${limit}`);
@@ -55,11 +83,7 @@ class ApiService {
     return this.fetchWithErrorHandling(`${API_BASE_URL}/news/top?limit=${limit}`);
   }
 
-  async searchNews(query: string, limit: number = 20): Promise<ApiResponse<Article>> {
-    const encodedQuery = encodeURIComponent(query);
-    return this.fetchWithErrorHandling(`${API_BASE_URL}/search?q=${encodedQuery}&limit=${limit}`);
-  }
-
+  
   async filterNewsByTheme(theme: string, limit: number = 50): Promise<ApiResponse<Article>> {
     const encodedTheme = encodeURIComponent(theme);
     return this.fetchWithErrorHandling(`${API_BASE_URL}/news/filter?theme=${encodedTheme}&limit=${limit}`);

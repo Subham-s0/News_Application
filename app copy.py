@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import re
 from datetime import datetime, timedelta
-import re
+
 import os
 from functools import lru_cache
 
@@ -485,8 +485,8 @@ def filter_news():
     
     return jsonify({'news': news_data, 'total': len(news_data)})
 
-@app.route('/api/searchesasd', methods=['GET'])
-def searchnews():
+@app.route('/api/searches', methods=['GET'])
+def search_news():
     """Search news using TF-IDF"""
     query = request.args.get('q', '').strip()
     limit = request.args.get('limit', 10, type=int)
@@ -561,15 +561,12 @@ def get_news_detail(news_id):
     
     return jsonify({'news': news_data})
 
-@app.route('/api/news/search', methods=['GET']) 
+@app.route('/api/news/search', methods=['GET'])
 def search_news():
     """Get detailed information about a specific news item"""
-    term = request.args.get('q')
-    if not term:
+    query_term = request.args.get('q')
+    if not query_term:
         return jsonify({'error': 'Theme parameter is required'}), 400
-    words = re.findall(r'\w+', term)
-    query_term = ' | '.join(words)  # e.g., "bitcoin & crash"
-
     
     query = """
         WITH unique_pages AS (
@@ -608,12 +605,12 @@ def search_news():
 
             """
     
-    results = db_manager.execute_query(query, (query_term, query_term, query_term))
+    results = db_manager.execute_query(query, (f'%{query_term}%'))
 
     if not results:
 
     
-        return jsonify({'error': 'search  not found'}), 404
+        return jsonify({'error': 'News item not found'}), 404
     
     news_data = []
     for row in results:

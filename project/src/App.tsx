@@ -1,17 +1,35 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Header from './components/Header';
 import NewsGrid from './components/NewsGrid';
 import FilterSidebar from './components/FilterSidebar';
 import { Article, NewsFilters, Sourcename } from './types/news';
 import { apiService } from './services/api';
 
-function App() {
+// Debounce hook for search optimization
+const useDebounce = (value: string, delay: number): string => {
+  const [debouncedValue, setDebouncedValue] = useState<string>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+function App(): JSX.Element {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sources, setSources] = useState<Sourcename[]>([]);
   const [featuredArticle, setFeaturedArticle] = useState<Article | null>(null);
+  const [allArticles, setAllArticles] = useState<Article[]>([]); // Store all articles for fallback
 
   const [filters, setFilters] = useState<NewsFilters>({
     source: 'All',
@@ -19,6 +37,9 @@ function App() {
     dateRange: 'All Time',
     searchQuery: ''
   });
+
+  // Debounce search query to avoid too many API calls
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   // Load featured article
   useEffect(() => {
@@ -35,7 +56,7 @@ function App() {
     fetchFeatured();
   }, []);
 
-  // Load news and sources on mount
+  // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -45,14 +66,17 @@ function App() {
         const sourcesResp = await apiService.getSourcename();
         setSources(sourcesResp.Sourcename || []);
 
-        // Load news
+        // Load initial news
         let response;
         try {
           response = await apiService.getTopNews(500);
         } catch {
           response = await apiService.getRecentNews(500);
         }
-        setArticles(response.news || response.results || []);
+        
+        const initialArticles = response.news || response.results || [];
+        setArticles(initialArticles);
+        setAllArticles(initialArticles); // Store for fallback
       } catch (err) {
         console.error('Failed to load initial data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load initial data');
@@ -63,37 +87,45 @@ function App() {
     loadInitialData();
   }, []);
 
-  // Handle search
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      // Reset to initial news
-      let response;
-      try {
-        response = await apiService.getTopNews(500);
-      } catch {
-        response = await apiService.getRecentNews(500);
+  // Handle real-time search
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearchQuery.trim()) {
+        // If search is empty, restore original articles
+        setArticles(allArticles);
+        setFilters(prev => ({ ...prev, searchQuery: '' }));
+        return;
       }
-      setArticles(response.news || response.results || []);
-      return;
-    }
 
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.searchNews(searchQuery, 20);
-      setArticles(response.results || []);
-      setFilters(prev => ({ ...prev, searchQuery }));
-    } catch (err) {
-      console.error('Search failed:', err);
-      setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setError('');
+      try {
+        const response = await apiService.searchNews(debouncedSearchQuery);
+        setArticles(response.news || []);
+        setFilters(prev => ({ ...prev, searchQuery: debouncedSearchQuery }));
+        setFeaturedArticle(null); // Hide featured article during search
+      } catch (err) {
+        console.error('Search failed:', err);
+        setError(err instanceof Error ? err.message : 'Search failed');
+        // Fallback to client-side filtering if API search fails
+        const filteredArticles = allArticles.filter(article =>
+          article.title?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          article.actor1_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          article.actor2_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          article.theme?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        );
+        setArticles(filteredArticles);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchQuery, allArticles]);
 
   // Handle theme filter
   useEffect(() => {
-    if (filters.theme !== 'All' && filters.theme !== '') {
+    if (filters.theme !== 'All' && filters.theme !== '' && !searchQuery) {
       const loadFilteredNews = async () => {
         setLoading(true);
         setError('');
@@ -109,27 +141,30 @@ function App() {
       };
       loadFilteredNews();
     }
-  }, [filters.theme]);
-const loadNews = async () => {
-  setLoading(true);
-  setError('');
-  try {
-    let response;
-    try {
-      response = await apiService.getTopNews(5000);
-    } catch {
-      response = await apiService.getRecentNews(5000);
-    }
-    setArticles(response.news || response.results || []);
-  } catch (err) {
-    console.error('Failed to load news:', err);
-    setError(err instanceof Error ? err.message : 'Failed to load news');
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [filters.theme, searchQuery]);
 
-  // Client-side filtering
+  const loadNews = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      let response;
+      try {
+        response = await apiService.getTopNews(500);
+      } catch {
+        response = await apiService.getRecentNews(500);
+      }
+      const newsArticles = response.news || response.results || [];
+      setArticles(newsArticles);
+      setAllArticles(newsArticles);
+    } catch (err) {
+      console.error('Failed to load news:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load news');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Client-side filtering for source and date
   const filteredArticles = useMemo(() => {
     return articles.filter(article => {
       const matchesSource =
@@ -141,24 +176,35 @@ const loadNews = async () => {
   }, [articles, filters.source, filters.dateRange]);
 
   const handleFiltersChange = (newFilters: NewsFilters) => {
-    
     setFilters(newFilters);
-    setFeaturedArticle(null);
+    
+    // If search query is cleared in filters, also clear the main search
     if (newFilters.searchQuery === '' && filters.searchQuery !== '') {
       setSearchQuery('');
+      setFeaturedArticle(null);
       loadNews();
     }
   };
 
+  // Handle manual search (for search button click)
+  const handleSearch = useCallback(() => {
+    // The useEffect with debouncedSearchQuery will handle this automatically
+    // This function can be used for additional search button functionality if needed
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} onSearch={handleSearch} />
+      <Header 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery} 
+        onSearch={handleSearch} 
+      />
 
       <main className="max-w-65rem mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
             <NewsGrid
-              featuredArticle={featuredArticle}
+              featuredArticle={searchQuery ? null : featuredArticle} // Hide featured during search
               articles={filteredArticles}
               loading={loading}
               error={error}
@@ -169,7 +215,7 @@ const loadNews = async () => {
               filters={filters}
               onFiltersChange={handleFiltersChange}
               articleCount={filteredArticles.length}
-              sources={sources} // <-- pass sources here
+              sources={sources}
             />
           </div>
         </div>

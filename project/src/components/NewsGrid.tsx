@@ -78,7 +78,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({ articles, featuredArticle, loading 
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
             <span>Featured Story</span>
             <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
-              {featuredArticle.num_mentions}  mentions
+              {featuredArticle.num_mentions}  Mentions
             </span>
           </h2>
           <ArticleCard article={featuredArticle} featured={true} />
